@@ -1,7 +1,8 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import PrimaryButton from "@/components/PrimaryButton";
 
 interface GitHubSearchFormProps {
   placeholder: string;
@@ -13,7 +14,7 @@ interface GitHubSearchFormProps {
   onClear: () => void;
 }
 
-const GitHubSearchForm = ({
+const GitHubSearchFormFields = ({
   placeholder,
   buttonText,
   loadingText,
@@ -23,10 +24,6 @@ const GitHubSearchForm = ({
   onClear,
 }: GitHubSearchFormProps) => {
   const [username, setUsername] = useState(initialUsername);
-
-  useEffect(() => {
-    setUsername(initialUsername);
-  }, [initialUsername]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -84,14 +81,23 @@ const GitHubSearchForm = ({
         )}
       </div>
 
-      <button
+      <PrimaryButton
         type="submit"
         disabled={isLoading}
-        className="h-12 rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-500 dark:hover:bg-blue-600"
+        className="h-12 px-6 text-sm font-semibold"
       >
         {isLoading ? loadingText : buttonText}
-      </button>
+      </PrimaryButton>
     </form>
+  );
+};
+
+const GitHubSearchForm = (props: GitHubSearchFormProps) => {
+  return (
+    <GitHubSearchFormFields
+      key={props.initialUsername ?? ""}
+      {...props}
+    />
   );
 };
 

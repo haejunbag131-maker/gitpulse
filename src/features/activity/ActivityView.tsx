@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { translations } from "@/constants/translations";
 import { getGitHubEvents } from "@/features/github/api";
+import GitHubCardSkeleton from "@/features/github/components/GitHubCardSkeleton";
 import GitHubEmptyGuide from "@/features/github/components/GitHubEmptyGuide";
+import GitHubPageHeader from "@/features/github/components/GitHubPageHeader";
 import GitHubSearchForm from "@/features/github/components/GitHubSearchForm";
 import { useLanguageStore } from "@/stores/languageStore";
 import type { GitHubEvent } from "@/types/github";
@@ -13,7 +16,6 @@ import ActivityRankingList from "./components/ActivityRankingList";
 import ActivityRecentList from "./components/ActivityRecentList";
 import ActivitySummaryCard from "./components/ActivitySummaryCard";
 import { getActivityStats } from "./utils/getActivityStats";
-import GitHubPageHeader from "../github/components/GitHubPageHeader";
 
 const ActivityView = () => {
   const router = useRouter();
@@ -23,13 +25,22 @@ const ActivityView = () => {
   const { language } = useLanguageStore();
 
   const t = translations[language].activity;
+  const commonT = translations[language].common;
 
   const username = searchParams.get("username")?.trim() ?? "";
 
-  const [events, setEvents] = useState<GitHubEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
+  const {
+    data: events = [],
+    isLoading,
+    isError,
+    isSuccess,
+  } = useQuery<GitHubEvent[]>({
+    queryKey: ["github-events", username],
+    queryFn: () => getGitHubEvents(username),
+    enabled: Boolean(username),
+  });
+  const errorMessage = isError ? commonT.githubUserNotFound : "";
+  const hasSearched = Boolean(username) && isSuccess;
 
   const stats = useMemo(() => {
     return getActivityStats(events);
@@ -53,55 +64,6 @@ const ActivityView = () => {
       scroll: true,
     });
   };
-
-  useEffect(() => {
-    if (!username) {
-      setEvents([]);
-      setErrorMessage("");
-      setHasSearched(false);
-      setIsLoading(false);
-      return;
-    }
-
-    let ignore = false;
-
-    const fetchEvents = async () => {
-      try {
-        setIsLoading(true);
-        setErrorMessage("");
-        setHasSearched(false);
-        setEvents([]);
-
-        const eventData = await getGitHubEvents(username);
-
-        if (ignore) return;
-
-        setEvents(eventData);
-        setHasSearched(true);
-      } catch (error) {
-        if (ignore) return;
-
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage(t.errorMessage);
-        }
-
-        setEvents([]);
-        setHasSearched(false);
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchEvents();
-
-    return () => {
-      ignore = true;
-    };
-  }, [username, t.errorMessage]);
 
   return (
     <main className="min-h-screen bg-gray-50 px-6 py-12 text-gray-900 transition-colors dark:bg-black dark:text-white">
@@ -129,6 +91,14 @@ const ActivityView = () => {
             </p>
           )}
         </div>
+
+        {isLoading && (
+          <GitHubCardSkeleton
+            label={t.loading}
+            count={4}
+            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
+          />
+        )}
 
         {!username && !isLoading && !errorMessage && (
           <GitHubEmptyGuide

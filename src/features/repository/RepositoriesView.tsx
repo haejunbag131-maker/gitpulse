@@ -1,12 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { PrimaryButtonLink } from "@/components/PrimaryButton";
 import { translations } from "@/constants/translations";
 import { getGitHubRepos } from "@/features/github/api";
 import GitHubEmptyGuide from "@/features/github/components/GitHubEmptyGuide";
+import GitHubPageHeader from "@/features/github/components/GitHubPageHeader";
 import GitHubPagination from "@/features/github/components/GitHubPagination";
+import GitHubCardSkeleton from "@/features/github/components/GitHubCardSkeleton";
 import GitHubRepoList from "@/features/github/components/GitHubRepoList";
 import GitHubSearchForm from "@/features/github/components/GitHubSearchForm";
 import { useLanguageStore } from "@/stores/languageStore";
@@ -14,7 +17,6 @@ import type { GitHubRepo } from "@/types/github";
 import RepositoryFilter, {
   type RepositorySortOption,
 } from "./components/RepositoryFilter";
-import GitHubPageHeader from "../github/components/GitHubPageHeader";
 
 const PAGE_SIZE = 6;
 
@@ -47,16 +49,25 @@ const RepositoriesView = () => {
 
   const t = translations[language].repositories;
   const repoT = translations[language].repo;
+  const commonT = translations[language].common;
 
   const username = searchParams.get("username")?.trim() ?? "";
   const selectedLanguage = searchParams.get("language") ?? "all";
   const sortOption = getValidSortOption(searchParams.get("sort"));
   const currentPage = getValidPage(searchParams.get("page"));
 
-  const [repos, setRepos] = useState<GitHubRepo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
+  const {
+    data: repos = [],
+    isLoading,
+    isError,
+    isSuccess,
+  } = useQuery<GitHubRepo[]>({
+    queryKey: ["github-repos", username],
+    queryFn: () => getGitHubRepos(username),
+    enabled: Boolean(username),
+  });
+  const errorMessage = isError ? commonT.githubUserNotFound : "";
+  const hasSearched = Boolean(username) && isSuccess;
 
   const updateSearchParams = useCallback(
     (params: {
@@ -109,55 +120,6 @@ const RepositoriesView = () => {
     },
     [pathname, router, searchParams],
   );
-
-  useEffect(() => {
-    if (!username) {
-      setRepos([]);
-      setErrorMessage("");
-      setHasSearched(false);
-      setIsLoading(false);
-      return;
-    }
-
-    let ignore = false;
-
-    const fetchRepos = async () => {
-      try {
-        setIsLoading(true);
-        setErrorMessage("");
-        setHasSearched(false);
-        setRepos([]);
-
-        const repoData = await getGitHubRepos(username);
-
-        if (ignore) return;
-
-        setRepos(repoData);
-        setHasSearched(true);
-      } catch (error) {
-        if (ignore) return;
-
-        if (error instanceof Error) {
-          setErrorMessage(error.message);
-        } else {
-          setErrorMessage(t.errorMessage);
-        }
-
-        setRepos([]);
-        setHasSearched(false);
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchRepos();
-
-    return () => {
-      ignore = true;
-    };
-  }, [username, t.errorMessage]);
 
   const languages = useMemo(() => {
     return Array.from(
@@ -282,6 +244,8 @@ const RepositoriesView = () => {
           )}
         </div>
 
+        {isLoading && <GitHubCardSkeleton label={t.loading} />}
+
         {!username && !isLoading && !errorMessage && (
           <GitHubEmptyGuide
             title={t.emptyGuideTitle}
@@ -328,12 +292,12 @@ const RepositoriesView = () => {
               forksLabel={repoT.forks}
               updatedAtLabel={repoT.updatedAt}
               action={
-                <Link
-                  href={`/languages?username=${encodeURIComponent(username)}`}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
+                <PrimaryButtonLink
+                  href={`/language?username=${encodeURIComponent(username)}`}
+                  className="inline-flex items-center justify-center px-4 py-2 text-center text-sm font-semibold"
                 >
                   {t.viewLanguageAnalysis}
-                </Link>
+                </PrimaryButtonLink>
               }
             />
 
