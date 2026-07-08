@@ -64,11 +64,7 @@ const ActivityView = () => {
         />
 
         {isLoading && (
-          <GitHubCardSkeleton
-            label={t.loading}
-            count={4}
-            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
-          />
+          <GitHubCardSkeleton label={t.loading} variant="activity" />
         )}
 
         {!username && !isLoading && !errorMessage && (

@@ -70,11 +70,7 @@ const LanguageView = () => {
         />
 
         {isLoading && (
-          <GitHubCardSkeleton
-            label={t.loading}
-            count={3}
-            className="grid grid-cols-1 gap-5 md:grid-cols-3"
-          />
+          <GitHubCardSkeleton label={t.loading} variant="language" />
         )}
 
         {!username && !isLoading && !errorMessage && (

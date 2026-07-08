@@ -72,7 +72,7 @@ const ProfileView = () => {
         />
 
         {isLoading ? (
-          <GitHubCardSkeleton label={t.loading} />
+          <GitHubCardSkeleton label={t.loading} variant="profile" />
         ) : (
           <ProfileCard
             user={user}

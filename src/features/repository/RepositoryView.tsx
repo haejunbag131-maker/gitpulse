@@ -237,7 +237,13 @@ const RepositoryView = () => {
           onClear={handleClear}
         />
 
-        {isLoading && <GitHubCardSkeleton label={t.loading} />}
+        {isLoading && (
+          <GitHubCardSkeleton
+            label={t.loading}
+            variant="repository"
+            count={PAGE_SIZE}
+          />
+        )}
 
         {!username && !isLoading && !errorMessage && (
           <GitHubEmptyGuide
